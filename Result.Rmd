@@ -8,7 +8,7 @@ date: "2024-03-07"
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-##Library data, data processing
+## Library data, data processing
 
 ```{r}
 data <- read.csv("All_data_S.csv")
@@ -31,9 +31,9 @@ results<-mediation::mediate(fit.mediator,fit.dv,treat='group',mediator='Strategy
 summary(results) 
 ```
 
-Conclusion: Group haven't effect (icluede direct or indirect effect on Total Distance)
+Conclusion: Group haven't effect (include direct or indirect effect on Total Distance)
 
-### Meidation on Condition
+### Mediation on Condition
 
 ```{r}
 library(mediation)
@@ -75,39 +75,110 @@ summary(med.out_real_con_34)
 | 34​  | 0.92​  | 2.00E-16​  |
 | 12​  | 0.92​  | 2.00E-16​  |
 
-Conslusion: Condition only has direct effect on Total Distance
+Conclusion: Condition only has direct effect on Total Distance
 
 ![](relationship.png)
 
 ## Three Model
+
 ### Whether do we need include random effect
+
 ```{r}
 fit_include_ml <- lmer(TD ~ group + age + Strategy + condition + BMI + (1|subject), data = data, REML = FALSE)
 fit_without_ml <- lm(TD ~ group + age + Strategy + BMI + condition, data = data) 
 library(RLRsim)
 exactLRT(fit_include_ml, fit_without_ml)
 ```
+
 Based on this result (p is smaller than 0.05), we need to include random effect (it make sense).
 
 We have done following models.
 
-Basic Model : basic_model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = data)
-Interaction Model : interaction_model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = data)
-Polynomial Model : poly_model <- lmer(TD ~ Strategy + group + as.factor(condition) + age + poly(age,2)  + (1|subject), data = data)
-### Model establish
+Basic Model : basic_model \<-lmer(TD \~ group + as.factor(condition) + age + Strategy + (1\|subject), data = data) Interaction Model : interaction_model \<-lmer(TD \~ group + as.factor(condition) + age + Strategy + group\*Strategy + (1\|subject), data = data) Polynomial Model : poly_model \<- lmer(TD \~ Strategy + group + as.factor(condition) + age + poly(age,2) + (1\|subject), data = data) \### Model establish
+
 ```{r}
 
 ```
+
 ### Model Performance
+
 AIC, BIC ... and residual plot and QQ plot for all models we used.
+
 ```{r}
 ```
+
 ## EDA
+
 Because the results of various edits to the model are not very good (in addition to the above model, we have also tried to convert the model, but the effect is not satisfactory), we try to check each variable in the data.
-```{r}
 
+```{r}
+library(ggplot2)
+library(dplyr)
+data_EDA <- data %>%
+  group_by(subject) %>%
+  summarise(BMI = mean(BMI, na.rm = TRUE), 
+            mean_TD = mean(TD, na.rm = TRUE),
+            Age = mean(age,na.rm = TRUE))
 ```
+
+### BMI -\> TD
+
+```{r}
+ggplot(data_EDA) +
+  aes(x = BMI, y = mean_TD) +
+  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
+  geom_smooth(span = 0.75) +
+  labs(title = "BMI to Total Distance") +
+  theme_minimal()
+```
+
+The confidence interval on the right side of the curve is too large, and the rise on the right end is basically caused by one person. We can think that there is no linear relationship between BMI and TD.
+
+### Age -\> TD
+
+```{r}
+ggplot(data_EDA) +
+  aes(x = Age, y = mean_TD) +
+  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
+  geom_smooth(span = 0.75) +
+  labs(title = "Age to Total Distance") +
+  theme_minimal()
+```
+
+There may be a relationship between Age and TD
+
+### Strategy -\> TD
+
+```{r}
+data_factor <- data |>
+  mutate("Strategy" = as.factor(Strategy),
+         "Condition" = as.factor(condition))
+ggplot(data_factor) +
+  aes(x = Strategy, y = TD) +
+  geom_boxplot(fill = "#112446") +
+  labs(title = "Strategy to TD") +
+  theme_minimal()
+```
+
+There do not appear to be strong relationships between Strategy and TD.
+
+### Condition -\> TD
+
+```{r}
+ggplot(data_factor) +
+  aes(x = Condition, y = TD) +
+  geom_boxplot(fill = "#112446") +
+  labs(title = "Condition to TD") +
+  theme_minimal()
+```
+
+There may be a relationship between Condition and TD, but it is not obvious.
+
+Based on the above results, it appears that we cannot achieve a more accurate alignment with the current samples and variables at hand. Here are some strategies you might consider to enhance the fitting:
+
+Increase the sample size. Adjust the sampling interval. Add new variables or modify existing ones.
+
 ## Code
+
 ```{r}
 ```
-
