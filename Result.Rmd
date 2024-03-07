@@ -35,6 +35,7 @@ Conclusion: Group haven't effect (icluede direct or indirect effect on Total Dis
 ### Meidation on Condition
 
 ```{r}
+library(mediation)
 med.model.con <- glmer (Strategy ~ group + condition + (1|subject), data = subset (data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial') 
 
 out.model.con<- lmer(TD ~ group + Strategy + condition + age + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4))) 
@@ -74,3 +75,38 @@ summary(med.out_real_con_34)
 | 12​  | 0.92​  | 2.00E-16​  |
 
 Conslusion: Condition only has direct effect on Total Distance
+
+![](relationship.png)
+
+## Three Model
+### Whether do we need include random effect
+```{r}
+library(lme4)
+fit_include_ml <- lmer(TD ~ group + age + Strategy + condition + BMI + (1|subject), data = data, REML = FALSE)
+fit_without_ml <- lm(TD ~ group + age + Strategy + BMI + condition, data = data) 
+library(RLRsim)
+exactLRT(fit_include_ml, fit_without_ml)
+```
+Based on this result (p is smaller than 0.05), we need to include random effect (it make sense).
+
+We have done following models.
+
+Basic Model : basic_model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = data)
+Interaction Model : interaction_model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = data)
+Polynomial Model : poly_model <- lmer(TD ~ Strategy + group + as.factor(condition) + age + poly(age,2)  + (1|subject), data = data)
+### Model establish
+```{r}
+```
+### Model Performance
+AIC, BIC ... and residual plot and QQ plot for all models we used.
+```{r}
+```
+## EDA
+Because the results of various edits to the model are not very good (in addition to the above model, we have also tried to convert the model, but the effect is not satisfactory), we try to check each variable in the data.
+```{r}
+
+```
+## Code
+```{r}
+```
+
