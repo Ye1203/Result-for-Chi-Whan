@@ -21,6 +21,7 @@ data <- subset(data, TD <= 2000)
 ### Mediation on Group
 
 ```{r}
+library(lme4)
 fit.mediator <- glmer (Strategy ~ group + condition + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial') 
 
 fit.dv<- lmer(TD ~ group + Strategy + condition + age  + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4))) 
@@ -81,7 +82,6 @@ Conslusion: Condition only has direct effect on Total Distance
 ## Three Model
 ### Whether do we need include random effect
 ```{r}
-library(lme4)
 fit_include_ml <- lmer(TD ~ group + age + Strategy + condition + BMI + (1|subject), data = data, REML = FALSE)
 fit_without_ml <- lm(TD ~ group + age + Strategy + BMI + condition, data = data) 
 library(RLRsim)
@@ -96,6 +96,7 @@ Interaction Model : interaction_model <-lmer(TD ~ group + as.factor(condition) +
 Polynomial Model : poly_model <- lmer(TD ~ Strategy + group + as.factor(condition) + age + poly(age,2)  + (1|subject), data = data)
 ### Model establish
 ```{r}
+
 ```
 ### Model Performance
 AIC, BIC ... and residual plot and QQ plot for all models we used.
