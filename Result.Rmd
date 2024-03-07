@@ -1,0 +1,76 @@
+---
+title: "Outline"
+output: html_document
+date: "2024-03-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Library data, data processing
+
+```{r}
+data <- read.csv("All_data_S.csv")
+data <- subset(data,Strategy!=2)
+data <- subset(data, TD <= 2000)
+```
+
+## CMA
+
+### Mediation on Group
+
+```{r}
+fit.mediator <- glmer (Strategy ~ group + condition + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial') 
+
+fit.dv<- lmer(TD ~ group + Strategy + condition + age  + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4))) 
+
+results<-mediation::mediate(fit.mediator,fit.dv,treat='group',mediator='Strategy',control.value = 1, treat.value = 2) 
+
+summary(results) 
+```
+
+Conclusion: Group haven't effect (icluede direct or indirect effect on Total Distance)
+
+### Meidation on Condition
+
+```{r}
+med.model.con <- glmer (Strategy ~ group + condition + (1|subject), data = subset (data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial') 
+
+out.model.con<- lmer(TD ~ group + Strategy + condition + age + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4))) 
+
+ 
+
+med.out_real_con_12<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot=FALSE, sims=500, control.value =1, treat.value = 2)
+med.out_real_con_13<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot=FALSE, sims=500,control.value =1, treat.value = 3)
+med.out_real_con_14<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot=FALSE, sims=500,control.value =1, treat.value = 4)
+med.out_real_con_23<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot= FALSE, sims=500,control.value =2, treat.value = 3)
+med.out_real_con_24<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot= FALSE, sims=500,control.value =2, treat.value = 4)
+med.out_real_con_34<-mediate(med.model.con,out.model.con,treat="condition",mediator="Strategy", boot= FALSE, sims=500,control.value =3, treat.value = 4)
+
+```
+
+### summary CMA on Condition
+
+```{r}
+summary(med.out_real_con_12)
+summary(med.out_real_con_13)
+summary(med.out_real_con_14)
+summary(med.out_real_con_23)
+summary(med.out_real_con_24)
+summary(med.out_real_con_34)  
+```
+
+### Table CMA on Condition
+
+|     | ACME  | ADE       |
+|-----|-------|-----------|
+| 12​  | 0.92​  | 2.00E-16​  |
+| 13​  | 0.89​  | 2.00E-16​  |
+| 14​  | 0.80​  | 2.00E-16​  |
+| 23​  | 0.96​  | 2.00E-16​  |
+| 24​  | 0.83​  | 2.00E-16​  |
+| 34​  | 0.92​  | 2.00E-16​  |
+| 12​  | 0.92​  | 2.00E-16​  |
+
+Conslusion: Condition only has direct effect on Total Distance
