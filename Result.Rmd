@@ -11,6 +11,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ## Library data, data processing
 
 ```{r}
+library (nlme)
+library (lme4)
+library(lmerTest)
+library(mediation)
+library(car)
+library(GGally)
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(caret)
+library(MASS)
+```
+
+
+```{r}
 data <- read.csv("All_data_S.csv")
 data <- subset(data,Strategy!=2)
 data <- subset(data, TD <= 2000)
@@ -97,15 +112,135 @@ We have done following models.
 Basic Model : basic_model \<-lmer(TD \~ group + as.factor(condition) + age + Strategy + (1\|subject), data = data) Interaction Model : interaction_model \<-lmer(TD \~ group + as.factor(condition) + age + Strategy + group\*Strategy + (1\|subject), data = data) Polynomial Model : poly_model \<- lmer(TD \~ Strategy + group + as.factor(condition) + age + poly(age,2) + (1\|subject), data = data) \### Model establish
 
 ```{r}
-
+basic_model<-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = data)
+interaction_model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = data)
+poly_model <- lmer(TD ~ Strategy + group + as.factor(condition) + age + poly(age,2) + (1|subject), data = data)
 ```
 
 ### Model Performance
 
-AIC, BIC ... and residual plot and QQ plot for all models we used.
+AIC, BIC ... and RMSE for all models we used.
+Also the summary of the one with best performance
 
+Train these three models with cross-validation:
+
+For Basic Model:
 ```{r}
+set.seed(123)
+folds <- createFolds(data$subject, k = 5, list = TRUE, returnTrain = TRUE)
+results <- list()
+for(i in seq_along(folds)) {
+  trainIndex <- folds[[i]]
+  # Split the data into training and test sets
+  trainData <- data[trainIndex, ]
+  testData <- data[-trainIndex, ]
+  # Fit the model on the training data
+  model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = trainData)  # Predict on the test data
+  predictions <- predict(model, newdata = testData)
+  # Calculate the root mean squared error (RMSE)
+  rmse <- sqrt(mean((predictions - testData$TD)^2))
+  # Extract AIC and BIC
+  aic <- AIC(model)
+  bic <- BIC(model)
+  # Store results
+  results[[i]] <- list(RMSE = rmse, AIC = aic, BIC = bic)
+  #Enable the following lines to see the residual plots#
+  #plot(fitted(model), resid(model), xlab = "Fitted Values", ylab = "Residuals",
+       #main = paste("Residual vs. Fitted Values - Fold", i))
+  #abline(h = 0, col = "red")
+}
+# Calculate the average RMSE, AIC, and BIC across all folds
+avg_rmse <- mean(sapply(results, function(x) x$RMSE))
+avg_aic <- mean(sapply(results, function(x) x$AIC))
+avg_bic <- mean(sapply(results, function(x) x$BIC))
+
+cat(sprintf("Average RMSE: %f\n", avg_rmse))
+cat(sprintf("Average AIC: %f\n", avg_aic))
+cat(sprintf("Average BIC: %f\n", avg_bic))
 ```
+For Interaction Model:
+```{r}
+set.seed(234)
+folds <- createFolds(data$subject, k = 5, list = TRUE, returnTrain = TRUE)
+results <- list()
+for(i in seq_along(folds)) {
+  trainIndex <- folds[[i]]
+  # Split the data into training and test sets
+  trainData <- data[trainIndex, ]
+  testData <- data[-trainIndex, ]
+  # Fit the model on the training data
+  model<-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = trainData)
+  # Predict on the test data
+  predictions <- predict(model, newdata = testData)
+  # Calculate the root mean squared error (RMSE)
+  rmse <- sqrt(mean((predictions - testData$TD)^2))
+  # Extract AIC and BIC
+  aic <- AIC(model)
+  bic <- BIC(model)
+  # Store results
+  results[[i]] <- list(RMSE = rmse, AIC = aic, BIC = bic)
+  #Enable the following lines to see the residual plots#
+  #plot(fitted(model), resid(model), xlab = "Fitted Values", ylab = "Residuals",
+       #main = paste("Residual vs. Fitted Values - Fold", i))
+  #abline(h = 0, col = "red")
+}
+# Calculate the average RMSE, AIC, and BIC across all folds
+avg_rmse <- mean(sapply(results, function(x) x$RMSE))
+avg_aic <- mean(sapply(results, function(x) x$AIC))
+avg_bic <- mean(sapply(results, function(x) x$BIC))
+
+cat(sprintf("Average RMSE: %f\n", avg_rmse))
+cat(sprintf("Average AIC: %f\n", avg_aic))
+cat(sprintf("Average BIC: %f\n", avg_bic))
+```
+
+For Polynomial Model:
+```{r}
+set.seed(345)
+folds <- createFolds(data$subject, k = 5, list = TRUE, returnTrain = TRUE)
+results <- list()
+for(i in seq_along(folds)) {
+  trainIndex <- folds[[i]]
+  # Split the data into training and test sets
+  trainData <- data[trainIndex, ]
+  testData <- data[-trainIndex, ]
+  # Fit the model on the training data
+  model <- lmer(TD ~ Strategy + group + as.factor(condition) + age + poly(age,2) + (1|subject), data = trainData)  # Predict on the test data
+  predictions <- predict(model, newdata = testData)
+  # Calculate the root mean squared error (RMSE)
+  rmse <- sqrt(mean((predictions - testData$TD)^2))
+  # Extract AIC and BIC
+  aic <- AIC(model)
+  bic <- BIC(model)
+  # Store results
+  results[[i]] <- list(RMSE = rmse, AIC = aic, BIC = bic)
+  #Enable the following lines to see the residual plots#
+  #plot(fitted(model), resid(model), xlab = "Fitted Values", ylab = "Residuals",
+       #main = paste("Residual vs. Fitted Values - Fold", i))
+  #abline(h = 0, col = "red")
+}
+# Calculate the average RMSE, AIC, and BIC across all folds
+avg_rmse <- mean(sapply(results, function(x) x$RMSE))
+avg_aic <- mean(sapply(results, function(x) x$AIC))
+avg_bic <- mean(sapply(results, function(x) x$BIC))
+
+cat(sprintf("Average RMSE: %f\n", avg_rmse))
+cat(sprintf("Average AIC: %f\n", avg_aic))
+cat(sprintf("Average BIC: %f\n", avg_bic))
+```
+We saw that based on the AIC and BIC, the polynomial model works the best(although the performance is still not acceptable enough based on the ratio: RMSE/Mean of TD = 0.225)
+
+Thus, we try get the plots and summary of the polynomial model:
+```{r}
+plot(poly_model)
+summary(poly_model)
+polbasic<-resid(poly_model)
+qqnorm(polbasic)
+qqline(polbasic)
+```
+
+From the residual plot, we find that as the fitted value becomes larger, the residuals become more and more dispersed. From the qq plot, it shows the residuals is not normally distributed.
+Moreover, the p-value here also tells us that probably the condition and age are the only two significant variables
 
 ## EDA
 
