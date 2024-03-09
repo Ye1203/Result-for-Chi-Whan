@@ -1,0 +1,243 @@
+---
+title: "Mixed effect model of the Virtual Obstacle Program"
+output:
+  pdf_document: default
+  PDF_notebook: default
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+---
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+### Introduction
+Obesity poses unique challenges for individuals’ static and dynamic stability. Compared to individuals with normal body mass index (BMI), individuals with obesity use different movement strategies such as increasing step width or hip flexion when walking or crossing obstacles, which often lead to falls and injuries.These strategies may be linked to postural instability or motor planning dysfunction (MPD) that can result in slowed information processing. Studies have investigated movement strategies in standing, but strategies in sitting have not been well documented. The purpose of this study was to explore effects of BMI on (1) movement strategy differences and (2) amount of leg movement during virtual obstacle crossing in sitting position. We hypothesize that the strategy to avoid the obstacle may mediate the relationship between BMI and the amount of leg movement during the Virtual Obstacle Avoidance Program.
+
+### Method
+Twenty-six participants were in this study: Individuals with Obesity (n=12; Female=6; mean age=29 years ±10; BMI=35.5 kg/m2 ±7.5) and Individuals with Normal BMI (n=14; Female=9; mean age=26 years ±5; BMI=21.6 kg/m2 ±2.3).
+The Virtual Obstacle Avoidance Program is the exercise game (exergame) using Inertial Measurement Units (IMU)s. Participants performed virtual obstacle crossing tasks, and IMUs were attached to their trunk, bilateral thighs, and bilateral shanks to measure leg motion.Participants were seated in front of the computer with the screen at eye level. On the screen, participants were cued to move a cursor from a home position to a target by moving their leg.
+For some trials, an obstacle will appear, forcing participants to perform hip adduction or hip abduction to reach the target without obstacle_hit. The timing of the presentation of the obstacle varied to test how new information is integrated into the sensorimotor system. For example, participants were required to avoid obstacles in 5 different conditions including: No Obstacle appears (Condition 0), appears prior to cue (Condition 1), Obstacle appears with cue (Condition 2), Obstacle appears with movement onset (Condition 3), and Obstacle appears at 20% of movement amplitude (Condition 4). Participants were given a “practice period” where they are given instructions and given practice trials to familiarize themselves with the movement patterns required to complete the task. The main task was consist of 5 block with 40 trials, total 200 trials. Total leg movement from Home to Target (TM) and Maximal Distance from midline (MD) while each trial, were calculated with the 2D distance between starting position (Home) and final position (Target) of a Cursor. As motor control symmetry was assumed, participants used their right leg only.  Mixed effect model was conducted to examine preferential strategy (Hip adduction or abduction) and TM and MD differed due to BMI and condition. We performed mediation analyses to investigate whether the strategy participants chose to avoid the obstacle mediate the relationship between BMI and TM or MD.
+---
+### Preparing the data
+```{r}
+library (nlme)
+library (lme4)
+library(lmerTest)
+library(mediation)
+data <- read.csv('All_data_S.csv')
+#data <- read.csv('/Users/c.luire/Muti-Stats/Obesity data/All_data_S.csv')
+## ----------------------------------------------------
+data <- subset(data, TD <= 2000)
+data <- subset(data,Strategy!=2)
+## ----------------------------------------------------
+# Fit the binomial GLMM
+# Completion(Obstacle_hit or abort) = 1 (Fail) , 0 (Success)
+# Obstacle_hit = 1,  No_Obstacle_hit=0
+# abort = 1, No_abort = 0
+```
+---
+We first excluded the obstacle hit trials which a participant fail to avoid obstacle. Then we excluded the abort trials which a participant fail to complete the trials in 20 seconds.
+```
+```
+
+
+```{r}
+
+Best.model <- glmer(Completion~ BMI + condition  + (1 | subject), 
+                data = data, family = binomial(link = 'logit'))
+summary(Best.model)
+
+Best.model1 <- glmer(obst_hit~ BMI +  condition  + (1 | subject), 
+                    data = data, family = binomial(link = 'logit'))
+summary(Best.model1)
+
+Best.model2<- glmer(abort~ BMI +  condition + (1 | subject), 
+                     data = data, family = binomial(link = 'logit'))
+summary(Best.model2)
+```
+### Result1
+BMI shows a significant effect on obstacle_hit and abort as well as Completion including both obstacle_hit and abort. We further investigate TD using success trials (Completion = 0)
+```{r}
+Best.model3 <- lmer(TD ~ BMI + group +
+                    (1 | subject), data = subset(data, Completion == 0 
+                                                 ))
+summary(Best.model3)
+```
+### Result2
+BMI shows a significant effect on TM, but there was no group difference in TM (Completion = 0). We further investigate Total leg movement using trials including condition(1,2,3,4) which are obstacle avoidance tasks in different timing (Completion = 0 & condition %in% c(1, 2, 3, 4)).
+
+```{r}
+Best.model4 <- lmer(TD ~ BMI + condition + (1 | subject)
+                   , data = subset(data, Completion == 0 
+                                   & condition %in% c(1, 2, 3, 4)))
+summary(Best.model4)
+
+
+Best.model5 <- lmer(MD ~ BMI + condition + (1 | subject)
+                  , data = subset(data, Completion == 0 
+                                  & condition %in% c(1, 2, 3, 4)))
+summary(Best.model5)
+
+```
+
+### Result3
+BMI and condition have a significant main effect on TM, but not on MD in the trials (Completion = 0 & condition %in% c(1, 2, 3, 4)). Further we investigated how BMI impact on the preferential strategy (hip abduction or adduction) and the strategy chosen to avoid the obstacle mediates the relationship between BMI and TD or BMI and DM in the trials (Completion = 0 & condition %in% c(1, 2, 3, 4)).
+
+```{r}
+Best.model6 <- glmer(Strategy ~ BMI + (1 | subject), 
+                    data = subset(data, Completion ==0 
+                                  & condition %in% c(1, 2, 3, 4)), 
+                    family = binomial(link = 'logit'))
+summary(Best.model6)
+
+```
+
+
+
+
+```{r}
+```
+
+
+```{r}
+# Load required packages
+#install.packages("mediation")
+library(mediation)
+# Assuming 'Strategy' is the mediator variable, and 'MD' is the outcome variable.
+# Fit mod1
+
+## ----------------------------------------------------
+fit.totaleffect <- lmer(MD ~ group + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.mediator    <- glmer(Strategy ~ group + condition +  age + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+#fit.totaleffect <- lmer(MD ~ BMI + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+#fit.mediator    <- glmer(Strategy ~ BMI + condition + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+## ----------------------------------------------------
+
+
+
+## ----------------------------------------------------
+## Age is added to control as a confounder
+#fit.dv <- lmer(MD ~ BMI + Strategy + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.dv <- lmer(MD ~ group + Strategy + condition + age + group*Strategy + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+## ----------------------------------------------------
+
+
+#mediation analysis:
+## ----------------------------------------------------
+## Add control values
+#results <- mediation::mediate(fit.mediator, fit.dv, treat='BMI', mediator='Strategy')
+results <- mediation::mediate(fit.mediator, fit.dv, treat='group', mediator='Strategy',control.value = 1, treat.value = 2)
+## ----------------------------------------------------
+summary(results)
+```
+
+
+```{r}
+
+# Assuming 'Strategy' is the mediator variable, and 'TD' is the outcome variable.
+# Fit mod2
+
+## ----------------------------------------------------
+fit.totaleffect <- lmer(TD ~ group + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.mediator    <- glmer(Strategy ~ group + condition + age + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+# fit.totaleffect <- lmer(TD ~ BMI + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+# fit.mediator    <- glmer(Strategy ~ BMI + condition + (1|subject), data = subset(data, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+## ----------------------------------------------------
+
+
+
+## ----------------------------------------------------
+## Age is added to control as a confounder
+#fit.dv          <- lmer(TD ~ BMI + Strategy + condition + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.dv          <- lmer(TD ~ group + Strategy + condition + age + group*Strategy + (1|subject), data = subset(data, Completion == 0& condition %in% c(1, 2, 3, 4)))
+## ----------------------------------------------------
+
+#mediation analysis:
+## ----------------------------------------------------
+## Add control values
+#results <- mediation::mediate(fit.mediator, fit.dv, treat='BMI', mediator='Strategy')
+results <- mediation::mediate(fit.mediator, fit.dv, treat='group', mediator='Strategy',control.value = 1, treat.value = 2)
+## ----------------------------------------------------
+summary(results)
+```
+```{r}
+summary(data)
+```
+
+```{r}
+
+# Assuming 'Strategy' is the mediator variable, and 'TD' is the outcome variable.
+# Fit mod3
+data.new = data
+# Make condition a categorical variable
+data.new$condition = as.factor(data.new$condition)
+
+
+## ----------------------------------------------------
+fit.totaleffect <- lmer(TD ~ group + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.mediator    <- glmer(Strategy ~ group + condition +  age + (1|subject), data = subset(data.new, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+# fit.totaleffect <- lmer(TD ~ BMI + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+# fit.mediator    <- glmer(Strategy ~ BMI + condition + (1|subject), data = subset(data.new, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+## ----------------------------------------------------
+
+
+
+## ----------------------------------------------------
+## Age is added to control as a confounder
+fit.dv          <- lmer(TD ~ group + Strategy + condition + age + group*Strategy + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+#fit.dv          <- lmer(TD ~ BMI + Strategy + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+## ----------------------------------------------------
+
+#mediation analysis:
+## Add control values
+#results <- mediation::mediate(fit.mediator, fit.dv, treat='BMI', mediator='Strategy')
+results <- mediation::mediate(fit.mediator, fit.dv, treat='group', mediator='Strategy',control.value = 1, treat.value = 2)
+## ----------------------------------------------------
+summary(results)
+```
+
+```{r}
+
+# Assuming 'Strategy' is the mediator variable, and 'MD' is the outcome variable.
+# Fit mod4
+data.new = data
+data.new$condition = as.factor(data.new$condition)
+
+
+
+## ----------------------------------------------------
+fit.totaleffect <- lmer(MD ~ group + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+fit.mediator    <- glmer(Strategy ~ group + condition +  age + (1|subject), data = subset(data.new, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+# fit.totaleffect <- lmer(MD ~ BMI + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+# fit.mediator    <- glmer(Strategy ~ BMI + condition + (1|subject), data = subset(data.new, Completion == 0 & condition %in% c(1, 2, 3, 4 )), family='binomial')
+## ----------------------------------------------------
+
+
+
+## ----------------------------------------------------
+## Age is added to control as a confounder
+fit.dv          <- lmer(MD ~ group + Strategy + condition + age + group*Strategy + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+#fit.dv          <- lmer(MD ~ BMI + Strategy + condition + (1|subject), data = subset(data.new, Completion == 0& condition %in% c(1, 2, 3, 4)))
+
+#mediation analysis:
+## Add control values
+#results <- mediation::mediate(fit.mediator, fit.dv, treat='BMI', mediator='Strategy')
+results <- mediation::mediate(fit.mediator, fit.dv, treat='group', mediator='Strategy',control.value = 1, treat.value = 2)
+summary(results)
+```
+### Result4
+BMI impact on the preferential strategy (hip abduction or adduction) and the strategy chosen to avoid the obstacle mediates the relationship not between BMI and TD but BMI and DM in the trials (Completion = 0 & condition %in% c(1, 2, 3, 4)).
+
+
+
+### Discussion
+BMI impacts on a different hip strategy in a seated position resulting in increased MD. This strategy might be attributed to decreased dynamic sitting balance and MPD (i.e., an end state comfort effect impairment) in individuals with high BMI. Our results suggest that virtual tasks can be used to reveal underlying impaired motor control in individuals with obesity or high BMI.
+These findings may present avenues for targeted physical therapy interventions to prevent falls and injuries in people with obesity.
