@@ -135,7 +135,7 @@ for(i in seq_along(folds)) {
   trainData <- data[trainIndex, ]
   testData <- data[-trainIndex, ]
   # Fit the model on the training data
-  model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = trainData)  # Predict on the test data
+  model <-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = trainData)  # Predict on the test data
   predictions <- predict(model, newdata = testData)
   # Calculate the root mean squared error (RMSE)
   rmse <- sqrt(mean((predictions - testData$TD)^2))
@@ -169,7 +169,7 @@ for(i in seq_along(folds)) {
   trainData <- data[trainIndex, ]
   testData <- data[-trainIndex, ]
   # Fit the model on the training data
-  model<-lmer(TD ~ group + as.factor(condition) + age + Strategy + (1|subject), data = trainData)
+  model<-lmer(TD ~ group + as.factor(condition) + age + Strategy + group*Strategy + (1|subject), data = trainData)
   # Predict on the test data
   predictions <- predict(model, newdata = testData)
   # Calculate the root mean squared error (RMSE)
